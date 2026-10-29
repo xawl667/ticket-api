@@ -14,6 +14,69 @@ enum TicketStatus {
   CLOSED
 }
 
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  AGENT
+  USER
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DISABLED
+}
+
+enum UserTokenType {
+  INVITATION
+  PASSWORD_RESET
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  passwordHash  String?
+  role          UserRole     @default(USER)
+  status        UserStatus   @default(INVITED)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  createdTickets   Ticket[]     @relation("TicketCreator")
+  assignedTickets  Ticket[]     @relation("TicketAssignee")
+  tokens           UserToken[]
+  refreshTokens    RefreshToken[]
+}
+
+model UserToken {
+  id        String        @id @default(uuid())
+  tokenHash String        @unique
+  type      UserTokenType
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, type])
+}
+
+model RefreshToken {
+  id           String       @id @default(uuid())
+  tokenHash    String       @unique
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId     String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  replacedBy   RefreshToken? @relation("TokenReplacement", fields: [replacedById], references: [id], onDelete: SetNull)
+  replacements RefreshToken[] @relation("TokenReplacement")
+  createdAt    DateTime     @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
 model Ticket {
   id          String       @id @default(uuid())
   title       String
@@ -21,4 +84,8 @@ model Ticket {
   status      TicketStatus @default(OPEN)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation("TicketCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  assignedToId String?
+  assignedTo  User?        @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
 }

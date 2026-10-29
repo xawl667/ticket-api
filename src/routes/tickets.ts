@@ -8,7 +8,7 @@ import {
 
 export const ticketsRouter = Router();
 
-// CrÃ©er un ticket
+// Créer un ticket
 ticketsRouter.post("/", async (req, res) => {
   const data = createTicketSchema.parse(req.body);
   const ticket = await prisma.ticket.create({ data });
@@ -18,14 +18,15 @@ ticketsRouter.post("/", async (req, res) => {
 // Lister les tickets (filtre optionnel ?status=OPEN)
 ticketsRouter.get("/", async (req, res) => {
   const { status } = listQuerySchema.parse(req.query);
+  const where = status ? { status } : {};
   const tickets = await prisma.ticket.findMany({
-    where: status ? { status } : undefined,
+    where,
     orderBy: { createdAt: "desc" },
   });
   res.json(tickets);
 });
 
-// RÃ©cupÃ©rer un ticket par ID
+// Récupérer un ticket par ID
 ticketsRouter.get("/:id", async (req, res) => {
   const ticket = await prisma.ticket.findUnique({
     where: { id: req.params.id },
@@ -45,4 +46,3 @@ ticketsRouter.patch("/:id/status", async (req, res) => {
   });
   res.json(ticket);
 });
-
