@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import helmet from "helmet";
 import { ticketsRouter } from "./routes/tickets.js";
 import { authRouter } from "./routes/auth.js";
+import { usersRouter } from "./routes/users.js";
 
 export const app = express();
 
@@ -11,6 +12,7 @@ app.disable("x-powered-by");
 app.use(helmet());
 app.use(express.json());
 app.use("/auth", authRouter);
+app.use("/users", usersRouter);
 app.use("/tickets", ticketsRouter);
 
 // Route inconnue

@@ -1,0 +1,33 @@
+import { Resend } from "resend";
+import { env } from "./env.js";
+
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+
+export interface EmailParams {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+export async function sendEmail(params: EmailParams): Promise<void> {
+  if (!resend) {
+    if (env.NODE_ENV !== "production") {
+      console.log(`[DEV EMAIL] To: ${params.to}`);
+      console.log(`[DEV EMAIL] Subject: ${params.subject}`);
+      console.log(`[DEV EMAIL] Body:\n${params.text}`);
+    }
+    return;
+  }
+
+  try {
+    await resend.emails.send({
+      from: env.EMAIL_FROM,
+      to: params.to,
+      subject: params.subject,
+      text: params.text,
+    });
+  } catch (err) {
+    console.error("Email send failed:", err);
+    throw new Error("Failed to send email");
+  }
+}

@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { prisma } from "../prisma.js";
-import { loginSchema } from "../schema.js";
-import { verifyPassword, getDummyHash } from "../auth/passwords.js";
+import { loginSchema, acceptInvitationSchema } from "../schema.js";
+import { verifyPassword, getDummyHash, hashPassword } from "../auth/passwords.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { authenticate } from "../auth/middleware.js";
 import { generateRefreshToken, hashToken, getRefreshTokenExpiry } from "../auth/tokens.js";
+import { sendEmail } from "../email.js";
+import { env } from "../env.js";
 
 export const authRouter = Router();
 
@@ -140,6 +142,51 @@ authRouter.post("/logout", async (req, res) => {
   }
 
   res.json({ success: true });
+});
+
+authRouter.post("/accept-invitation", async (req, res) => {
+  const { token, password } = acceptInvitationSchema.parse(req.body);
+  const tokenHash = hashToken(token);
+
+  const passwordHash = await hashPassword(password);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await tx.userToken.updateMany({
+      where: {
+        tokenHash,
+        type: "INVITATION",
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { usedAt: new Date() },
+    });
+
+    if (updated.count !== 1) {
+      return { ok: false as const };
+    }
+
+    const userToken = await tx.userToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+
+    if (!userToken || userToken.user.status !== "INVITED") {
+      return { ok: false as const };
+    }
+
+    await tx.user.update({
+      where: { id: userToken.userId },
+      data: { passwordHash, status: "ACTIVE" },
+    });
+
+    return { ok: true as const };
+  });
+
+  if (!result.ok) {
+    return res.status(400).json({ error: "Invalid or expired token" });
+  }
+
+  res.status(204).send();
 });
 
 authRouter.get("/me", authenticate, async (req, res) => {

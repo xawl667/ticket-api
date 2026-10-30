@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
 
-// Une variable vide (FOO=) est traitée comme absente
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
 const envSchema = z.object({
@@ -19,6 +18,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.preprocess(
     emptyToUndefined,
     z.string().startsWith("re_").min(20, "RESEND_API_KEY looks invalid").optional(),
+  ),
+  EMAIL_FROM: z.preprocess(
+    emptyToUndefined,
+    z.string().email().default("onboarding@resend.dev"),
   ),
   SEED_SUPER_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SEED_SUPER_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).optional()),
