@@ -1,35 +1,40 @@
+import "dotenv/config";
 import { z } from "zod";
+
+// Une variable vide (FOO=) est traitée comme absente
+const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
-  DATABASE_URL: z.string().url().startsWith("postgresql://"),
+  DATABASE_URL: z.string().startsWith("postgresql://"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_ISSUER: z.string().min(1).default("ticket-api"),
   JWT_AUDIENCE: z.string().min(1).default("ticket-api"),
-  APP_URL: z.string().url().default("http://localhost:3000"),
-  RESEND_API_KEY: z.string().optional(),
-  SEED_SUPER_ADMIN_EMAIL: z.string().email().optional(),
-  SEED_SUPER_ADMIN_PASSWORD: z.string().min(12).optional(),
-}).strict();
+  APP_URL: z
+    .string()
+    .url()
+    .default("http://localhost:3000")
+    .transform((v) => v.replace(/\/+$/, "")),
+  RESEND_API_KEY: z.preprocess(
+    emptyToUndefined,
+    z.string().startsWith("re_").min(20, "RESEND_API_KEY looks invalid").optional(),
+  ),
+  SEED_SUPER_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
+  SEED_SUPER_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).optional()),
+});
 
-type Env = z.infer<typeof envSchema>;
+const parsed = envSchema.safeParse(process.env);
 
-let env: Env;
-
-try {
-  env = envSchema.parse(process.env);
-} catch (err) {
-  if (err instanceof z.ZodError) {
-    console.error("Invalid environment variables:");
-    for (const issue of err.issues) {
-      console.error(`  ${issue.path.join(".")}: ${issue.message}`);
-    }
-  } else {
-    console.error("Unknown error validating environment:", err);
+if (!parsed.success) {
+  console.error("Invalid environment variables:");
+  for (const issue of parsed.error.issues) {
+    console.error(`  ${issue.path.join(".")}: ${issue.message}`);
   }
   process.exit(1);
 }
+
+export const env = parsed.data;
 
 if (env.NODE_ENV === "production") {
   if (!env.RESEND_API_KEY) {
@@ -41,5 +46,3 @@ if (env.NODE_ENV === "production") {
     process.exit(1);
   }
 }
-
-export { env };
