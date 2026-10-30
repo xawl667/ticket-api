@@ -43,3 +43,13 @@ export async function authenticate(
   req.user = { id: user.id, sub: user.id, role: user.role };
   next();
 }
+
+export function requireRole(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    next();
+  };
+}
