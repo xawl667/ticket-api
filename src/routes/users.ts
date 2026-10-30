@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { createUserSchema } from "../schema.js";
 import { authenticate } from "../auth/middleware.js";
@@ -73,5 +74,103 @@ usersRouter.get(
       orderBy: { createdAt: "desc" },
     });
     res.json(users);
+  }
+);
+
+const idParamSchema = z.object({
+  id: z.string().uuid(),
+}).strict();
+
+usersRouter.patch(
+  "/:id/disable",
+  requireRole("SUPER_ADMIN"),
+  async (req, res) => {
+    const { id } = idParamSchema.parse(req.params);
+
+    if (id === req.user!.id) {
+      return res.status(400).json({ error: "Cannot disable yourself" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({
+        where: { id },
+        select: { id: true, role: true, status: true },
+      });
+
+      if (!target) {
+        return { ok: false as const, reason: "not_found" };
+      }
+
+      if (target.role === "SUPER_ADMIN") {
+        const activeSuperAdmins = await tx.user.count({
+          where: { role: "SUPER_ADMIN", status: "ACTIVE" },
+        });
+        if (activeSuperAdmins <= 1) {
+          return { ok: false as const, reason: "last_super_admin" };
+        }
+      }
+
+      await tx.user.update({
+        where: { id },
+        data: { status: "DISABLED" },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      return { ok: true as const };
+    });
+
+    if (!result.ok) {
+      if (result.reason === "not_found") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      if (result.reason === "last_super_admin") {
+        return res.status(400).json({ error: "Cannot disable the last active Super Admin" });
+      }
+      return res.status(400).json({ error: "Failed to disable user" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, role: true, status: true },
+    });
+    res.json(user);
+  }
+);
+
+usersRouter.patch(
+  "/:id/enable",
+  requireRole("SUPER_ADMIN"),
+  async (req, res) => {
+    const { id } = idParamSchema.parse(req.params);
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, role: true, status: true, passwordHash: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Not found" });
+    }
+
+    if (user.status !== "DISABLED") {
+      return res.status(400).json({ error: "User is not disabled" });
+    }
+
+    const newStatus = user.passwordHash ? "ACTIVE" : "INVITED";
+
+    await prisma.user.update({
+      where: { id },
+      data: { status: newStatus },
+    });
+
+    const updated = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, role: true, status: true },
+    });
+    res.json(updated);
   }
 );

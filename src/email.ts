@@ -20,14 +20,20 @@ export async function sendEmail(params: EmailParams): Promise<void> {
   }
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: env.EMAIL_FROM,
       to: params.to,
       subject: params.subject,
       text: params.text,
     });
+
+    if (result.error) {
+      console.error("Email send failed:", result.error.message);
+      throw new Error("Failed to send email");
+    }
   } catch (err) {
-    console.error("Email send failed:", err);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Email send failed:", message);
     throw new Error("Failed to send email");
   }
 }
