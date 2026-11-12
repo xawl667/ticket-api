@@ -18,7 +18,7 @@ export const listQuerySchema = z.object({
 // Auth schemas
 export const loginSchema = z.object({
   email: z.string().email().toLowerCase(),
-  password: z.string().min(8).max(72),
+  password: z.string().min(1).max(128),
 }).strict();
 
 export const acceptInvitationSchema = z.object({

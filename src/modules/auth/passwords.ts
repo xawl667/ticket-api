@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 
 const BCRYPT_COST = 12;
-// Hash factice bcrypt cost 12 pour anti-énumération (même temps de comparaison)
-const DUMMY_HASH = "$2a$12$dummyhashdummyhashdummyhashdummyhashdummy";
+// Hash factice bcrypt cost 12 valide pour anti-ï¿½numï¿½ration (mï¿½me temps de comparaison)
+const DUMMY_HASH = "$2a$12$rPWr06v9PVcVRup.EXwqBORhumzhTkafmnuo9ZnqEAt8NabuGg.Sa";
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, BCRYPT_COST);

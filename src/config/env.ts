@@ -23,6 +23,10 @@ const envSchema = z.object({
     emptyToUndefined,
     z.string().email().default("onboarding@resend.dev"),
   ),
+  RATE_LIMIT_ENABLED: z.preprocess(
+    emptyToUndefined,
+    z.coerce.boolean().default(true),
+  ),
   SEED_SUPER_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SEED_SUPER_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).optional()),
 });

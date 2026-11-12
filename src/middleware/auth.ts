@@ -1,14 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
-import { prisma } from "../prisma.js";
-import { verifyAccessToken, type AccessTokenPayload } from "./tokens.js";
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AccessTokenPayload & { id: string };
-    }
-  }
-}
+import { prisma } from "../shared/prisma.js";
+import { verifyAccessToken, type AccessTokenPayload } from "../modules/auth/tokens.js";
+import "../shared/types.js";
 
 export async function authenticate(
   req: Request,

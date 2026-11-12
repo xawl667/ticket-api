@@ -1,21 +1,42 @@
-import { Router } from "express";
-import { prisma } from "../prisma.js";
-import { loginSchema, acceptInvitationSchema, forgotPasswordSchema, resetPasswordSchema } from "../schema.js";
-import { verifyPassword, getDummyHash, hashPassword } from "../auth/passwords.js";
-import { signAccessToken } from "../auth/tokens.js";
-import { authenticate } from "../auth/middleware.js";
-import { generateRefreshToken, hashToken, getRefreshTokenExpiry } from "../auth/tokens.js";
-import { sendEmail } from "../email.js";
-import { env } from "../env.js";
-import { randomBytes } from "crypto";
+import { prisma } from "../../shared/prisma.js";
+import { verifyPassword, getDummyHash, hashPassword } from "./passwords.js";
+import { signAccessToken } from "./tokens.js";
+import { generateRefreshToken, hashToken, getRefreshTokenExpiry } from "./tokens.js";
+import { sendEmail } from "../../shared/email.js";
+import { env } from "../../config/env.js";
+import { randomBytes, randomUUID } from "crypto";
 
-export const authRouter = Router();
+export interface LoginResult {
+  accessToken: string;
+  refreshToken: string;
+}
 
-authRouter.post("/login", async (req, res) => {
-  const { email, password } = loginSchema.parse(req.body);
+export interface RefreshResult {
+  accessToken: string;
+  refreshToken: string;
+}
 
+interface RefreshErrorResult {
+  ok: false;
+  reason: "not_found" | "reuse" | "expired" | "inactive";
+}
+
+interface RefreshSuccessResult {
+  ok: true;
+  accessToken: string;
+  refreshToken: string;
+}
+
+type RefreshTransactionResult = RefreshErrorResult | RefreshSuccessResult;
+
+export interface TokenPayload {
+  sub: string;
+  role: string;
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: email.toLowerCase() },
     select: { id: true, passwordHash: true, role: true, status: true },
   });
 
@@ -23,10 +44,10 @@ authRouter.post("/login", async (req, res) => {
   const isValid = await verifyPassword(password, hashToCheck);
 
   if (!user || !isValid || user.status !== "ACTIVE") {
-    return res.status(401).json({ error: "Invalid credentials" });
+    throw new Error("Invalid credentials");
   }
 
-  const familyId = crypto.randomUUID();
+  const familyId = randomUUID();
   const refreshToken = generateRefreshToken();
   const refreshTokenHash = hashToken(refreshToken);
   const expiresAt = getRefreshTokenExpiry();
@@ -41,25 +62,24 @@ authRouter.post("/login", async (req, res) => {
   });
 
   const accessToken = signAccessToken({ sub: user.id, role: user.role });
-  res.json({ accessToken, refreshToken });
-});
+  return { accessToken, refreshToken };
+}
 
-authRouter.post("/refresh", async (req, res) => {
-  const { refreshToken } = req.body as { refreshToken?: string };
+export async function refresh(refreshToken: string): Promise<RefreshResult> {
   if (!refreshToken) {
-    return res.status(401).json({ error: "Unauthorized" });
+    throw new Error("Unauthorized");
   }
 
   const tokenHash = hashToken(refreshToken);
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx): Promise<RefreshTransactionResult> => {
     const stored = await tx.refreshToken.findUnique({
       where: { tokenHash },
       include: { user: { select: { id: true, role: true, status: true } } },
     });
 
     if (!stored) {
-      return { ok: false, reason: "not_found" as const };
+      return { ok: false, reason: "not_found" };
     }
 
     if (stored.revokedAt) {
@@ -67,15 +87,15 @@ authRouter.post("/refresh", async (req, res) => {
         where: { familyId: stored.familyId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-      return { ok: false, reason: "reuse" as const };
+      return { ok: false, reason: "reuse" };
     }
 
     if (stored.expiresAt < new Date()) {
-      return { ok: false, reason: "expired" as const };
+      return { ok: false, reason: "expired" };
     }
 
     if (stored.user.status !== "ACTIVE") {
-      return { ok: false, reason: "inactive" as const };
+      return { ok: false, reason: "inactive" };
     }
 
     const revoked = await tx.refreshToken.updateMany({
@@ -88,7 +108,7 @@ authRouter.post("/refresh", async (req, res) => {
         where: { familyId: stored.familyId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-      return { ok: false, reason: "reuse" as const };
+      return { ok: false, reason: "reuse" };
     }
 
     const newFamilyId = stored.familyId;
@@ -113,22 +133,17 @@ authRouter.post("/refresh", async (req, res) => {
 
     const accessToken = signAccessToken({ sub: stored.user.id, role: stored.user.role });
 
-    return { ok: true as const, accessToken, refreshToken: newRefreshToken };
+    return { ok: true, accessToken, refreshToken: newRefreshToken };
   });
 
   if (!result.ok) {
-    return res.status(401).json({ error: "Unauthorized" });
+    throw new Error("Unauthorized");
   }
 
-  res.json({ accessToken: result.accessToken, refreshToken: result.refreshToken });
-});
+  return { accessToken: result.accessToken, refreshToken: result.refreshToken };
+}
 
-authRouter.post("/logout", async (req, res) => {
-  const { refreshToken } = req.body as { refreshToken?: string };
-  if (!refreshToken) {
-    return res.json({ success: true });
-  }
-
+export async function logout(refreshToken: string): Promise<void> {
   const tokenHash = hashToken(refreshToken);
 
   const stored = await prisma.refreshToken.findUnique({
@@ -141,20 +156,13 @@ authRouter.post("/logout", async (req, res) => {
       data: { revokedAt: new Date() },
     });
   }
+}
 
-  res.json({ success: true });
-});
-
-authRouter.post("/forgot-password", async (req, res) => {
-  const { email } = forgotPasswordSchema.parse(req.body);
-
+export async function forgotPassword(email: string): Promise<void> {
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: email.toLowerCase() },
     select: { id: true, status: true },
   });
-
-  const genericResponse = { message: "If the account exists and is active, a reset link has been sent" };
-  res.json(genericResponse);
 
   if (!user || user.status !== "ACTIVE") {
     return;
@@ -192,12 +200,10 @@ authRouter.post("/forgot-password", async (req, res) => {
   }).catch((err) => {
     console.error("Failed to send reset email:", err instanceof Error ? err.message : "Unknown error");
   });
-});
+}
 
-authRouter.post("/reset-password", async (req, res) => {
-  const { token, password } = resetPasswordSchema.parse(req.body);
+export async function resetPassword(token: string, password: string): Promise<void> {
   const tokenHash = hashToken(token);
-
   const passwordHash = await hashPassword(password);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -238,16 +244,12 @@ authRouter.post("/reset-password", async (req, res) => {
   });
 
   if (!result.ok) {
-    return res.status(400).json({ error: "Invalid or expired token" });
+    throw new Error("Invalid or expired token");
   }
+}
 
-  res.status(204).send();
-});
-
-authRouter.post("/accept-invitation", async (req, res) => {
-  const { token, password } = acceptInvitationSchema.parse(req.body);
+export async function acceptInvitation(token: string, password: string): Promise<void> {
   const tokenHash = hashToken(token);
-
   const passwordHash = await hashPassword(password);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -283,16 +285,14 @@ authRouter.post("/accept-invitation", async (req, res) => {
   });
 
   if (!result.ok) {
-    return res.status(400).json({ error: "Invalid or expired token" });
+    throw new Error("Invalid or expired token");
   }
+}
 
-  res.status(204).send();
-});
-
-authRouter.get("/me", authenticate, async (req, res) => {
+export async function getMe(userId: string) {
   const user = await prisma.user.findUnique({
-    where: { id: req.user!.id },
+    where: { id: userId },
     select: { id: true, email: true, role: true, status: true, createdAt: true },
   });
-  res.json(user);
-});
+  return user;
+}

@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { createHash, randomBytes } from "crypto";
-import { env } from "../env.js";
+import { env } from "../../config/env.js";
 
 const ACCESS_TTL = "15m";
 const REFRESH_TTL_DAYS = 7;
