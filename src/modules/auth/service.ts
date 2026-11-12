@@ -5,6 +5,7 @@ import { generateRefreshToken, hashToken, getRefreshTokenExpiry } from "./tokens
 import { sendEmail } from "../../shared/email.js";
 import { env } from "../../config/env.js";
 import { randomBytes, randomUUID } from "crypto";
+import { AppError } from "../../shared/errors.js";
 
 export interface LoginResult {
   accessToken: string;
@@ -44,7 +45,7 @@ export async function login(email: string, password: string): Promise<LoginResul
   const isValid = await verifyPassword(password, hashToCheck);
 
   if (!user || !isValid || user.status !== "ACTIVE") {
-    throw new Error("Invalid credentials");
+    throw AppError.unauthorized("Invalid credentials", "INVALID_CREDENTIALS");
   }
 
   const familyId = randomUUID();
@@ -67,7 +68,7 @@ export async function login(email: string, password: string): Promise<LoginResul
 
 export async function refresh(refreshToken: string): Promise<RefreshResult> {
   if (!refreshToken) {
-    throw new Error("Unauthorized");
+    throw AppError.unauthorized("Unauthorized", "UNAUTHORIZED");
   }
 
   const tokenHash = hashToken(refreshToken);
@@ -137,7 +138,7 @@ export async function refresh(refreshToken: string): Promise<RefreshResult> {
   });
 
   if (!result.ok) {
-    throw new Error("Unauthorized");
+    throw AppError.unauthorized("Unauthorized", "UNAUTHORIZED");
   }
 
   return { accessToken: result.accessToken, refreshToken: result.refreshToken };
@@ -244,7 +245,7 @@ export async function resetPassword(token: string, password: string): Promise<vo
   });
 
   if (!result.ok) {
-    throw new Error("Invalid or expired token");
+    throw AppError.badRequest("Invalid or expired token", "INVALID_OR_EXPIRED_TOKEN");
   }
 }
 
@@ -285,7 +286,7 @@ export async function acceptInvitation(token: string, password: string): Promise
   });
 
   if (!result.ok) {
-    throw new Error("Invalid or expired token");
+    throw AppError.badRequest("Invalid or expired token", "INVALID_OR_EXPIRED_TOKEN");
   }
 }
 

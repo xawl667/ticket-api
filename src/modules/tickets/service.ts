@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/prisma.js";
 import { Prisma } from "@prisma/client";
+import { AppError } from "../../shared/errors.js";
 
 export interface CreateTicketData {
   title: string;
@@ -43,7 +44,7 @@ export async function getTicketById(id: string, user: UserContext) {
   }
   const ticket = await prisma.ticket.findUnique({ where });
   if (!ticket) {
-    throw new Error("Not found");
+    throw AppError.notFound("Not found", "NOT_FOUND");
   }
   return ticket;
 }

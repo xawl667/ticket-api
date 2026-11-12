@@ -2,6 +2,7 @@ import { prisma } from "../../shared/prisma.js";
 import { generateRefreshToken, hashToken } from "../auth/tokens.js";
 import { sendEmail } from "../../shared/email.js";
 import { env } from "../../config/env.js";
+import { AppError } from "../../shared/errors.js";
 
 export interface CreateUserData {
   email: string;
@@ -57,7 +58,7 @@ export async function createUser(data: CreateUserData): Promise<UserResponse> {
     });
   } catch {
     await prisma.user.delete({ where: { id: user.id } });
-    throw new Error("Failed to send invitation email");
+    throw AppError.internal("Failed to send invitation email", "EMAIL_SEND_FAILED");
   }
 
   return user;
@@ -72,7 +73,7 @@ export async function getUsers(): Promise<UserResponse[]> {
 
 export async function disableUser(id: string, requesterId: string): Promise<UserResponse> {
   if (id === requesterId) {
-    throw new Error("Cannot disable yourself");
+    throw AppError.badRequest("Cannot disable yourself", "CANNOT_DISABLE_SELF");
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -109,12 +110,12 @@ export async function disableUser(id: string, requesterId: string): Promise<User
 
   if (!result.ok) {
     if (result.reason === "not_found") {
-      throw new Error("Not found");
+      throw AppError.notFound("Not found", "NOT_FOUND");
     }
     if (result.reason === "last_super_admin") {
-      throw new Error("Cannot disable the last active Super Admin");
+      throw AppError.badRequest("Cannot disable the last active Super Admin", "LAST_SUPER_ADMIN");
     }
-    throw new Error("Failed to disable user");
+    throw AppError.internal("Failed to disable user", "DISABLE_FAILED");
   }
 
   const user = await prisma.user.findUnique({
@@ -131,11 +132,11 @@ export async function enableUser(id: string): Promise<UserResponse> {
   });
 
   if (!user) {
-    throw new Error("Not found");
+    throw AppError.notFound("Not found", "NOT_FOUND");
   }
 
   if (user.status !== "DISABLED") {
-    throw new Error("User is not disabled");
+    throw AppError.badRequest("User is not disabled", "USER_NOT_DISABLED");
   }
 
   const newStatus = user.passwordHash ? "ACTIVE" : "INVITED";

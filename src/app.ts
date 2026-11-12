@@ -7,6 +7,7 @@ import { authRouter } from "./modules/auth/routes.js";
 import { usersRouter } from "./modules/users/routes.js";
 import { ticketsRouter } from "./modules/tickets/routes.js";
 import { env } from "./config/env.js";
+import { isAppError, AppError } from "./shared/errors.js";
 
 export const app = express();
 
@@ -59,6 +60,9 @@ app.use((_req, res) => {
 
 // Gestion d'erreurs globale
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  if (isAppError(err)) {
+    return res.status(err.statusCode).json({ error: err.message });
+  }
   if (err instanceof ZodError) {
     return res.status(400).json({ error: "Validation failed", details: err.issues });
   }
