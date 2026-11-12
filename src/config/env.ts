@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { z } from "zod";
 
 const emptyToUndefined = (v: unknown) => (v === "" ? undefined : v);
@@ -25,7 +24,7 @@ const envSchema = z.object({
   ),
   RATE_LIMIT_ENABLED: z.preprocess(
     emptyToUndefined,
-    z.coerce.boolean().default(true),
+    z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   ),
   SEED_SUPER_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SEED_SUPER_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).optional()),

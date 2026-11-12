@@ -58,7 +58,7 @@ export async function createUser(data: CreateUserData): Promise<UserResponse> {
     });
   } catch {
     await prisma.user.delete({ where: { id: user.id } });
-    throw AppError.internal("Failed to send invitation email", "EMAIL_SEND_FAILED");
+    throw AppError.badGateway("Failed to send invitation email", "EMAIL_SEND_FAILED");
   }
 
   return user;
