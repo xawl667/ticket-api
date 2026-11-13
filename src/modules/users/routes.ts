@@ -11,3 +11,4 @@ usersRouter.post("/", requireRole("SUPER_ADMIN"), usersController.createUser);
 usersRouter.get("/", requireRole("SUPER_ADMIN", "ADMIN"), usersController.getUsers);
 usersRouter.patch("/:id/disable", requireRole("SUPER_ADMIN"), usersController.disableUser);
 usersRouter.patch("/:id/enable", requireRole("SUPER_ADMIN"), usersController.enableUser);
+usersRouter.patch("/:id/role", requireRole("SUPER_ADMIN"), usersController.changeUserRole);

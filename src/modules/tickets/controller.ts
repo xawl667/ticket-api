@@ -13,10 +13,16 @@ export async function createTicket(req: Request, res: Response) {
 }
 
 export async function getTickets(req: Request, res: Response) {
-  const { status } = listQuerySchema.parse(req.query);
-  const filters = status ? { status: status as "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" } : {};
-  const tickets = await ticketsService.getTickets(filters, { id: req.user!.id, role: req.user!.role });
-  res.json(tickets);
+  const { status, page, limit, sort, order } = listQuerySchema.parse(req.query);
+  const filters: ticketsService.TicketFilters = {
+    status: status as "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | undefined,
+    page,
+    limit,
+    sort,
+    order,
+  };
+  const result = await ticketsService.getTickets(filters, { id: req.user!.id, role: req.user!.role });
+  res.json(result);
 }
 
 export async function getTicketById(req: Request, res: Response) {

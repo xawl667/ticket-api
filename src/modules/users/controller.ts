@@ -7,9 +7,13 @@ const idParamSchema = z.object({
   id: z.string().uuid(),
 }).strict();
 
+const changeRoleSchema = z.object({
+  role: z.enum(["ADMIN", "AGENT", "USER"]),
+}).strict();
+
 export async function createUser(req: Request, res: Response) {
   const { email, role } = createUserSchema.parse(req.body);
-  const user = await usersService.createUser({ email, role: role ?? "USER" });
+  const user = await usersService.createUser({ email, role: role ?? "USER" }, req.user!.id);
   res.status(201).json(user);
 }
 
@@ -26,6 +30,13 @@ export async function disableUser(req: Request, res: Response) {
 
 export async function enableUser(req: Request, res: Response) {
   const { id } = idParamSchema.parse(req.params);
-  const user = await usersService.enableUser(id);
+  const user = await usersService.enableUser(id, req.user!.id);
+  res.json(user);
+}
+
+export async function changeUserRole(req: Request, res: Response) {
+  const { id } = idParamSchema.parse(req.params);
+  const { role } = changeRoleSchema.parse(req.body);
+  const user = await usersService.changeUserRole(id, role, req.user!.id);
   res.json(user);
 }

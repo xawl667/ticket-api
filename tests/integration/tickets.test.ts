@@ -83,7 +83,7 @@ describe('Tickets integration (RBAC matrix)', () => {
   });
 
   // ========================================================================
-  // GET /tickets - visibility rules
+  // GET /tickets - visibility rules (paginated response: { data, meta })
   // ========================================================================
   describe('GET /tickets', () => {
     it('SUPER_ADMIN sees all tickets including orphan', async () => {
@@ -92,9 +92,16 @@ describe('Tickets integration (RBAC matrix)', () => {
         .set(authHeader(superAdmin.accessToken));
 
       expect(res.status).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      const ids = res.body.map((t: any) => t.id).sort();
+      expect(res.body).toHaveProperty('data');
+      expect(Array.isArray(res.body.data)).toBe(true);
+      const ids = res.body.data.map((t: any) => t.id).sort();
       expect(ids).toEqual([orphanTicket.id, user1Ticket.id, user2Ticket.id].sort());
+      expect(res.body.meta).toEqual({
+        page: 1,
+        limit: 20,
+        total: 3,
+        totalPages: 1,
+      });
     });
 
     it('ADMIN sees all tickets including orphan', async () => {
@@ -103,7 +110,8 @@ describe('Tickets integration (RBAC matrix)', () => {
         .set(authHeader(admin.accessToken));
 
       expect(res.status).toBe(200);
-      const ids = res.body.map((t: any) => t.id).sort();
+      expect(Array.isArray(res.body.data)).toBe(true);
+      const ids = res.body.data.map((t: any) => t.id).sort();
       expect(ids).toEqual([orphanTicket.id, user1Ticket.id, user2Ticket.id].sort());
     });
 
@@ -113,7 +121,8 @@ describe('Tickets integration (RBAC matrix)', () => {
         .set(authHeader(agent.accessToken));
 
       expect(res.status).toBe(200);
-      const ids = res.body.map((t: any) => t.id).sort();
+      expect(Array.isArray(res.body.data)).toBe(true);
+      const ids = res.body.data.map((t: any) => t.id).sort();
       expect(ids).toEqual([orphanTicket.id, user1Ticket.id, user2Ticket.id].sort());
     });
 
@@ -123,8 +132,10 @@ describe('Tickets integration (RBAC matrix)', () => {
         .set(authHeader(user1.accessToken));
 
       expect(res.status).toBe(200);
-      const ids = res.body.map((t: any) => t.id).sort();
+      expect(Array.isArray(res.body.data)).toBe(true);
+      const ids = res.body.data.map((t: any) => t.id).sort();
       expect(ids).toEqual([user1Ticket.id]);
+      expect(res.body.meta.total).toBe(1);
     });
 
     it('filters by status for all roles', async () => {
@@ -135,7 +146,8 @@ describe('Tickets integration (RBAC matrix)', () => {
         .set(authHeader(superAdmin.accessToken));
 
       expect(res.status).toBe(200);
-      expect(res.body.every((t: any) => t.status === 'RESOLVED')).toBe(true);
+      expect(res.body.data.every((t: any) => t.status === 'RESOLVED')).toBe(true);
+      expect(res.body.meta.total).toBe(1);
     });
   });
 

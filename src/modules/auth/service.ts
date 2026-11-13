@@ -6,6 +6,7 @@ import { sendEmail } from "../../shared/email.js";
 import { env } from "../../config/env.js";
 import { randomBytes, randomUUID } from "crypto";
 import { AppError } from "../../shared/errors.js";
+import { createAuditLog, type AuditAction } from "../audit/service.js";
 
 export interface LoginResult {
   accessToken: string;
@@ -241,12 +242,20 @@ export async function resetPassword(token: string, password: string): Promise<vo
       data: { revokedAt: new Date() },
     });
 
-    return { ok: true as const };
+    return { ok: true as const, userId: userToken.userId };
   });
 
   if (!result.ok) {
     throw AppError.badRequest("Invalid or expired token", "INVALID_OR_EXPIRED_TOKEN");
   }
+
+  await createAuditLog({
+    actorId: result.userId,
+    action: "PASSWORD_RESET_COMPLETED",
+    targetType: "User",
+    targetId: result.userId,
+    metadata: {},
+  });
 }
 
 export async function acceptInvitation(token: string, password: string): Promise<void> {
@@ -282,12 +291,20 @@ export async function acceptInvitation(token: string, password: string): Promise
       data: { passwordHash, status: "ACTIVE" },
     });
 
-    return { ok: true as const };
+    return { ok: true as const, userId: userToken.userId };
   });
 
   if (!result.ok) {
     throw AppError.badRequest("Invalid or expired token", "INVALID_OR_EXPIRED_TOKEN");
   }
+
+  await createAuditLog({
+    actorId: result.userId,
+    action: "INVITATION_ACCEPTED",
+    targetType: "User",
+    targetId: result.userId,
+    metadata: {},
+  });
 }
 
 export async function getMe(userId: string) {

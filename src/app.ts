@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import { authRouter } from "./modules/auth/routes.js";
 import { usersRouter } from "./modules/users/routes.js";
 import { ticketsRouter } from "./modules/tickets/routes.js";
+import { auditRouter } from "./modules/audit/routes.js";
 import { env } from "./config/env.js";
 import { isAppError, AppError } from "./shared/errors.js";
 
@@ -21,16 +22,28 @@ app.set("trust proxy", env.NODE_ENV === "production");
 
 app.use(express.json({ limit: "10kb" }));
 
+// 413 handler for body too large (must be after json parser)
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && "status" in err && err.status === 413) {
+    return res.status(413).json({ error: "Payload too large" });
+  }
+  if (err && typeof err === "object" && "type" in err && err.type === "entity.too.large") {
+    return res.status(413).json({ error: "Payload too large" });
+  }
+  next(err);
+});
+
 // Rate limiting configurable
 if (env.RATE_LIMIT_ENABLED) {
   const createLimiter = (windowMs: number, max: number, message: string) =>
     rateLimit({
       windowMs,
       max,
-      message: { error: message },
+      handler: (_req, res) => {
+        res.status(429).json({ error: message });
+      },
       standardHeaders: true,
       legacyHeaders: false,
-      // keyGenerator par d?faut = IP (respecte trust proxy)
     });
 
   // /auth/login : 10 req / 15 min
@@ -52,6 +65,7 @@ if (env.RATE_LIMIT_ENABLED) {
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
 app.use("/tickets", ticketsRouter);
+app.use("/audit-logs", auditRouter);
 
 // Route inconnue
 app.use((_req, res) => {
