@@ -33,6 +33,7 @@ describe('Auth integration', () => {
         .post('/auth/login')
         .send({ email: activeUser.email, password: 'TestPass123!' });
 
+      console.log('[DEBUG] login response:', res.status, res.body);
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('accessToken');
       expect(res.body).toHaveProperty('refreshToken');

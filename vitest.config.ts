@@ -10,6 +10,11 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     setupFiles: ["./tests/setup.ts"],
     fileParallelism: false,
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
     testTimeout: 30000,
     hookTimeout: 30000,
     globals: true,
