@@ -9,15 +9,31 @@ import { ticketsRouter } from "./modules/tickets/routes.js";
 import { auditRouter } from "./modules/audit/routes.js";
 import { env } from "./config/env.js";
 import { isAppError, AppError } from "./shared/errors.js";
+import { setupSwagger } from "./openapi.js";
 
 export const app = express();
 
 app.disable("x-powered-by");
-app.use(helmet());
 
-// Trust proxy pour rate limiting derri?re reverse proxy (nginx, etc.)
-// En dev: trust proxy = false (d?sactiv? par d?faut), rate limit bas? sur IP directe
-// En prod derri?re proxy: d?finir TRUST_PROXY=true dans .env
+// Helmet avec CSP assouplie pour /docs si ENABLE_DOCS=true
+const helmetConfig = env.ENABLE_DOCS
+  ? {
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "script-src": ["'self'", "'unsafe-inline'"],
+          "style-src": ["'self'", "'unsafe-inline'"],
+          "img-src": ["'self'", "data:", "https:"],
+        },
+      },
+    }
+  : {};
+
+app.use(helmet(helmetConfig));
+
+// Trust proxy pour rate limiting derrière reverse proxy (nginx, etc.)
+// En dev: trust proxy = false (désactivé par défaut), rate limit basé sur IP directe
+// En prod derrière proxy: définir TRUST_PROXY=true dans .env
 app.set("trust proxy", env.NODE_ENV === "production");
 
 app.use(express.json({ limit: "10kb" }));
@@ -66,6 +82,9 @@ app.use("/auth", authRouter);
 app.use("/users", usersRouter);
 app.use("/tickets", ticketsRouter);
 app.use("/audit-logs", auditRouter);
+
+// Swagger / OpenAPI (désactivé en prod sauf si ENABLE_DOCS=true)
+setupSwagger(app, env.ENABLE_DOCS);
 
 // Route inconnue
 app.use((_req, res) => {

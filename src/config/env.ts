@@ -26,6 +26,10 @@ const envSchema = z.object({
     emptyToUndefined,
     z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   ),
+  ENABLE_DOCS: z.preprocess(
+    emptyToUndefined,
+    z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
+  ),
   SEED_SUPER_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SEED_SUPER_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).optional()),
 });

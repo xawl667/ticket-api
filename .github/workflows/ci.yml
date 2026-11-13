@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+  DATABASE_URL: postgresql://user:pass@localhost:5432/tickets_test
+  JWT_SECRET: test-secret-min-32-chars-abcdefghijklmnop
+  JWT_ISSUER: ticket-api
+  JWT_AUDIENCE: ticket-api
+  APP_URL: http://localhost:3000
+  RESEND_API_KEY: re_test_fake_key_for_ci_only
+  EMAIL_FROM: onboarding@resend.dev
+  RATE_LIMIT_ENABLED: 'false'
+  ENABLE_DOCS: 'false'
+  SEED_SUPER_ADMIN_EMAIL: admin@example.com
+  SEED_SUPER_ADMIN_PASSWORD: TestPass123!!
+
+jobs:
+  test:
+    name: Test (Node 22, Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: tickets_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U user -d tickets_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          JWT_ISSUER: ${{ env.JWT_ISSUER }}
+          JWT_AUDIENCE: ${{ env.JWT_AUDIENCE }}
+          APP_URL: ${{ env.APP_URL }}
+          RESEND_API_KEY: ${{ env.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ env.EMAIL_FROM }}
+          RATE_LIMIT_ENABLED: ${{ env.RATE_LIMIT_ENABLED }}
+          ENABLE_DOCS: ${{ env.ENABLE_DOCS }}
+          SEED_SUPER_ADMIN_EMAIL: ${{ env.SEED_SUPER_ADMIN_EMAIL }}
+          SEED_SUPER_ADMIN_PASSWORD: ${{ env.SEED_SUPER_ADMIN_PASSWORD }}
+          NODE_ENV: test

@@ -1,8 +1,8 @@
-# Support Ticket API
+# Ticket API
 
-API REST pour la gestion de tickets de support avec authentification complËte, RBAC, et gestion des invitations/rÈinitialisations de mot de passe.
+API REST pour la gestion de tickets de support avec authentification compl√®te, RBAC, invitations, r√©initialisation de mot de passe, audit logs et pagination.
 
-## PrÈrequis
+## Pr√©requis
 
 - Node.js 22+
 - PostgreSQL 16 (via Docker)
@@ -11,200 +11,216 @@ API REST pour la gestion de tickets de support avec authentification complËte, R
 ## Installation
 
 ```bash
-# 1. Cloner et installer les dÈpendances
+# 1. Cloner et installer les d√©pendances
 cd ticket-api
 npm install
 
-# 2. DÈmarrer PostgreSQL
+# 2. D√©marrer PostgreSQL
 docker compose up -d
 
-# 3. Configurer l environnement
+# 3. Configurer l'environnement
 cp .env.example .env
-# …diter .env avec vos valeurs (notamment JWT_SECRET, RESEND_API_KEY, etc.)
+# √âditer .env avec vos valeurs (notamment JWT_SECRET, RESEND_API_KEY, etc.)
 
 # 4. Appliquer la migration
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 
-# 5. CrÈer le Super Admin initial
+# 5. Cr√©er le Super Admin initial
 npm run seed
-# IMPORTANT : Retirez SEED_SUPER_ADMIN_PASSWORD de votre .env aprËs exÈcution !
+# IMPORTANT : Retirez SEED_SUPER_ADMIN_PASSWORD de votre .env apr√®s ex√©cution !
 
-# 6. Lancer l API en dÈveloppement
+# 6. Lancer l'API en d√©veloppement
 npm run dev
 # API disponible sur http://localhost:3000
 ```
 
-## Variables d environnement
+## Variables d'environnement
 
-| Variable | Description | DÈfaut | Requis |
+| Variable | Description | D√©faut | Requis |
 |----------|-------------|--------|--------|
 | `DATABASE_URL` | URL PostgreSQL | `postgresql://user:pass@localhost:5433/tickets` | Oui |
 | `NODE_ENV` | Environnement | `development` | Non |
 | `PORT` | Port HTTP | `3000` | Non |
-| `JWT_SECRET` | Secret pour signer les JWT (min 32 caractËres) | - | Oui |
+| `JWT_SECRET` | Secret pour signer les JWT (min 32 caract√®res) | - | Oui |
 | `JWT_ISSUER` | Issuer des JWT | `ticket-api` | Non |
 | `JWT_AUDIENCE` | Audience des JWT | `ticket-api` | Non |
-| `APP_URL` | URL publique de l application (pour liens email) | `http://localhost:3000` | Non |
-| `RESEND_API_KEY` | ClÈ API Resend (format `re_...`) | - | Prod seulement |
-| `EMAIL_FROM` | ExpÈditeur des emails | `onboarding@resend.dev` | Non |
+| `APP_URL` | URL publique de l'application (pour liens email) | `http://localhost:3000` | Non |
+| `RESEND_API_KEY` | Cl√© API Resend (format `re_...`) | - | Prod seulement |
+| `EMAIL_FROM` | Exp√©diteur des emails | `onboarding@resend.dev` | Non |
 | `RATE_LIMIT_ENABLED` | Activer le rate limiting | `true` | Non |
+| `ENABLE_DOCS` | Activer `/docs` (Swagger UI) et `/openapi.json` | `false` | Non |
 | `SEED_SUPER_ADMIN_EMAIL` | Email du Super Admin initial | - | Pour seed seulement |
-| `SEED_SUPER_ADMIN_PASSWORD` | Mot de passe du Super Admin initial (min 12 caractËres) | - | Pour seed seulement |
+| `SEED_SUPER_ADMIN_PASSWORD` | Mot de passe du Super Admin initial (min 12 caract√®res) | - | Pour seed seulement |
 
-> En production : `RESEND_API_KEY` et `APP_URL` (HTTPS) sont obligatoires. `EMAIL_FROM` doit Ítre un email vÈrifiÈ sur votre domaine Resend.
+> En production : `RESEND_API_KEY` et `APP_URL` (HTTPS) sont obligatoires. `EMAIL_FROM` doit √™tre un email v√©rifi√© sur votre domaine Resend.
 
-## RÙles et permissions
+## R√¥les et permissions
 
-### Matrice des permissions (hypothËses par dÈfaut)
+### Matrice des permissions (hypoth√®ses par d√©faut)
 
 | Action | SUPER_ADMIN | ADMIN | AGENT | USER |
 |--------|-------------|-------|-------|------|
-| CrÈer / inviter un utilisateur | ? | ? | ? | ? |
-| DÈsactiver / rÈactiver un utilisateur | ? | ? | ? | ? |
-| Lister les utilisateurs | ? | ? | ? | ? |
-| CrÈer un ticket | ? | ? | ? | ? |
-| Voir tous les tickets | ? | ? | ? | ? (siens seulement) |
-| Voir un ticket par ID | ? | ? | ? | Siens seulement (404 sinon) |
-| Changer le statut d un ticket | ? | ? | ? | ? |
+| Cr√©er / inviter un utilisateur | ‚úÖ | ‚ùå | ‚ùå | ‚ùå |
+| D√©sactiver / r√©activer un utilisateur | ‚úÖ | ‚ùå | ‚ùå | ‚ùå |
+| Changer le r√¥le d'un utilisateur | ‚úÖ | ‚ùå | ‚ùå | ‚ùå |
+| Lister les utilisateurs | ‚úÖ | ‚úÖ | ‚ùå | ‚ùå |
+| Voir les audit logs | ‚úÖ | ‚ùå | ‚ùå | ‚ùå |
+| Cr√©er un ticket | ‚úÖ | ‚úÖ | ‚úÖ | ‚úÖ |
+| Voir tous les tickets | ‚úÖ | ‚úÖ | ‚úÖ | ‚ùå (siens seulement) |
+| Voir un ticket par ID | ‚úÖ | ‚úÖ | ‚úÖ | Siens seulement (404 sinon) |
+| Changer le statut d'un ticket | ‚úÖ | ‚úÖ | ‚úÖ | ‚ùå |
 
-> **Note** : Cette matrice reflËte les hypothËses par dÈfaut implÈmentÈes dans le code. Elle peut Ítre ajustÈe selon les besoins mÈtier.
+> **Note** : Cette matrice refl√®te les hypoth√®ses par d√©faut impl√©ment√©es dans le code. Elle peut √™tre ajust√©e selon les besoins m√©tier.
+>
+> **Question ouverte** : Un SUPER_ADMIN peut-il promouvoir un autre utilisateur en SUPER_ADMIN ? Actuellement non (le sch√©ma `changeRoleSchema` n'accepte que `ADMIN`, `AGENT`, `USER`). √Ä confirmer avec Yaaqoub.
 
 ## Endpoints
 
 ### Authentification
 
-| MÈthode | Route | RÙle requis | Body | RÈponses |
+| M√©thode | Route | R√¥le requis | Body | R√©ponses |
 |---------|-------|-------------|------|----------|
 | POST | `/auth/login` | Public | `{ email, password }` | 200 `{ accessToken, refreshToken }`, 401 |
 | POST | `/auth/refresh` | Public | `{ refreshToken }` | 200 `{ accessToken, refreshToken }`, 401 |
 | POST | `/auth/logout` | Public | `{ refreshToken }` | 200 `{ success: true }` |
-| POST | `/auth/forgot-password` | Public | `{ email }` | 200 (toujours, anti-ÈnumÈration) |
+| POST | `/auth/forgot-password` | Public | `{ email }` | 200 (toujours, anti-√©num√©ration) |
 | POST | `/auth/reset-password` | Public | `{ token, password }` | 204, 400 |
 | POST | `/auth/accept-invitation` | Public | `{ token, password }` | 204, 400 |
-| GET | `/auth/me` | AuthentifiÈ | - | 200 `{ id, email, role, status, createdAt }`, 401 |
+| GET | `/auth/me` | Authentifi√© | - | 200 `{ id, email, role, status, createdAt }`, 401 |
 
-### Utilisateurs (protÈgÈs par `authenticate`)
+### Utilisateurs (prot√©g√©s par `authenticate`)
 
-| MÈthode | Route | RÙle requis | Body | RÈponses |
+| M√©thode | Route | R√¥le requis | Body | R√©ponses |
 |---------|-------|-------------|------|----------|
 | POST | `/users` | SUPER_ADMIN | `{ email, role? }` | 201 `{ id, email, role, status, createdAt }`, 409, 403 |
 | GET | `/users` | SUPER_ADMIN, ADMIN | - | 200 `[{ id, email, role, status, createdAt }]`, 403 |
 | PATCH | `/users/:id/disable` | SUPER_ADMIN | - | 200 `{ id, email, role, status }`, 400, 404, 403 |
 | PATCH | `/users/:id/enable` | SUPER_ADMIN | - | 200 `{ id, email, role, status }`, 400, 404, 403 |
+| PATCH | `/users/:id/role` | SUPER_ADMIN | `{ role }` | 200 `{ id, email, role, status, createdAt }`, 400, 404, 403 |
 
-> Le body de `POST /users` accepte `role` optionnel (dÈfaut `USER`). Valeurs : `ADMIN`, `AGENT`, `USER`. `SUPER_ADMIN` ne peut pas Ítre crÈÈ via cette route.
+> Le body de `POST /users` accepte `role` optionnel (d√©faut `USER`). Valeurs : `ADMIN`, `AGENT`, `USER`. `SUPER_ADMIN` ne peut pas √™tre cr√©√© via cette route.
+>
+> `PATCH /users/:id/role` : valeurs accept√©es `ADMIN`, `AGENT`, `USER`. Ne peut pas changer son propre r√¥le. Ne peut pas r√©trograder le dernier SUPER_ADMIN actif. Cr√©e un audit log `ROLE_CHANGED` avec metadata `{ previousRole, newRole }`.
 
-### Tickets (protÈgÈs par `authenticate`)
+### Tickets (prot√©g√©s par `authenticate`)
 
-| MÈthode | Route | RÙle requis | Body | RÈponses |
-|---------|-------|-------------|------|----------|
-| POST | `/tickets` | Tous (authentifiÈ) | `{ title, description }` | 201 `{ ticket }`, 400, 401 |
-| GET | `/tickets` | Tous (authentifiÈ) | `?status=` optionnel | 200 `[tickets]`, 401 |
-| GET | `/tickets/:id` | Tous (authentifiÈ) | - | 200 `{ ticket }`, 404, 401 |
+| M√©thode | Route | R√¥le requis | Body / Query | R√©ponses |
+|---------|-------|-------------|--------------|----------|
+| POST | `/tickets` | Tous (authentifi√©) | `{ title, description }` | 201 `{ ticket }`, 400, 401 |
+| GET | `/tickets` | Tous (authentifi√©) | `?status=&page=&limit=&sort=&order=` | 200 `{ data, meta }`, 400, 401 |
+| GET | `/tickets/:id` | Tous (authentifi√©) | - | 200 `{ ticket }`, 404, 401 |
 | PATCH | `/tickets/:id/status` | SUPER_ADMIN, ADMIN, AGENT | `{ status }` | 200 `{ ticket }`, 400, 403, 404, 401 |
 
-> **VisibilitÈ** : SUPER_ADMIN, ADMIN, AGENT voient tous les tickets (y compris ceux sans crÈateur). USER ne voit que ses propres tickets (`createdById = user.id`) ó 404 si ticket d un autre.
-> **CrÈation** : `createdById` est automatiquement dÈfini sur l utilisateur authentifiÈ, jamais lu depuis le body.
+> **Visibilit√©** : SUPER_ADMIN, ADMIN, AGENT voient tous les tickets (y compris ceux sans cr√©ateur `createdById: null`). USER ne voit que ses propres tickets (`createdById = user.id`) ‚Üí 404 si ticket d'un autre.
+> **Cr√©ation** : `createdById` est automatiquement d√©fini sur l'utilisateur authentifi√©, jamais lu depuis le body.
+> **Pagination** : `GET /tickets` retourne `{ data: Ticket[], meta: { page, limit, total, totalPages } }`.
+> - `page` : d√©faut 1, minimum 1
+> - `limit` : d√©faut 20, maximum 100 (valeurs > 100 sont plafonn√©es √† 100)
+> - `sort` : `createdAt` | `updatedAt` | `status` (d√©faut `createdAt`)
+> - `order` : `asc` | `desc` (d√©faut `desc`)
+> - `status` : `OPEN` | `IN_PROGRESS` | `RESOLVED` | `CLOSED`
+> - Param√®tres invalides (ex: `page=0`, `sort=passwordHash`, `order=x`, param√®tre inconnu) ‚Üí 400
 
-## Flux d invitation (dÈveloppement)
+### Audit Logs (prot√©g√©s par `authenticate` + `requireRole("SUPER_ADMIN")`)
 
-1. SUPER_ADMIN appelle `POST /users` avec `{ email, role }`
-2. L API crÈe l utilisateur en `status: INVITED`, gÈnËre un token d invitation (48h), invalide les anciens
-3. L email est envoyÈ via Resend. **Sans `RESEND_API_KEY` en dÈveloppement**, le lien complet est affichÈ dans la console du serveur :
-   ```
-   [DEV EMAIL] To: user@example.com
-   [DEV EMAIL] Subject: Invitation to join Ticket API
-   [DEV EMAIL] Body:
-   You have been invited...
-   http://localhost:3000/accept-invitation?token=abc123...
-   ```
-4. L utilisateur copie le token et appelle `POST /auth/accept-invitation` avec `{ token, password }` (min 12 caractËres)
-5. L API consomme le token (atomique), valide l utilisateur (`ACTIVE`), hashe le mot de passe
-6. L utilisateur se connecte via `POST /auth/login`
+| M√©thode | Route | R√¥le requis | Query | R√©ponses |
+|---------|-------|-------------|-------|----------|
+| GET | `/audit-logs` | SUPER_ADMIN | `?action=&actorId=&targetType=&targetId=&page=&limit=&sortBy=&sortOrder=` | 200 `{ data, meta }`, 401, 403 |
 
-## Flux de rÈinitialisation de mot de passe (dÈveloppement)
+> **Actions audit√©es** : `USER_INVITED`, `INVITATION_ACCEPTED`, `USER_DISABLED`, `USER_ENABLED`, `ROLE_CHANGED`, `PASSWORD_RESET_COMPLETED`.
+> **Pagination** : m√™me format que `/tickets` (`page`, `limit` max 100, `sortBy=createdAt`, `sortOrder=asc|desc`).
+> **Filtres** : `action`, `actorId`, `targetType`, `targetId`.
+> **S√©curit√©** : aucun champ sensible (token, mot de passe, hash, email) dans `metadata` ni dans la r√©ponse.
 
-1. Utilisateur appelle `POST /auth/forgot-password` avec `{ email }`
-2. **RÈponse toujours 200** avec message gÈnÈrique (anti-ÈnumÈration)
-3. Si compte `ACTIVE` : token gÈnÈrÈ (1h), anciens invalidÈs, email envoyÈ
-4. **Sans `RESEND_API_KEY` en dÈveloppement**, le lien est affichÈ dans la console
-5. Utilisateur appelle `POST /auth/reset-password` avec `{ token, password }` (8-72 caractËres)
-6. Token consommÈ atomiquement, mot de passe mis ‡ jour, **tous les refresh tokens rÈvoquÈs**
-7. Utilisateur se reconnecte via `POST /auth/login`
+## Format d'erreur unifi√©
 
-## Choix de sÈcuritÈ et justifications
+Toutes les erreurs retournent `{ "error": "message" }`.
 
-| Choix | Justification |
-|-------|---------------|
-| **JWT HS256 + secret 32+ chars** | Choix de conception (pas exigence du sujet). SymÈtrique, simple, pas de gestion de paires de clÈs. Secret long = rÈsistance brute-force. |
-| **Algorithme fixÈ ‡ `["HS256"]`** | PrÈvention attaque "alg: none" et confusion RS256/HS256. |
-| **Issuer + Audience vÈrifiÈs** | Token non rÈutilisable sur autre service. |
-| **Access token 15 min, claims `sub` + `role`** | Court TTL = fenÍtre d exploitation rÈduite. Pas de donnÈes sensibles dans le token. |
-| **Refresh token : `randomBytes(32)` hex, SHA-256 stockÈ, 7 jours** | Entropie forte, pas de secret en base. Rotation ‡ chaque refresh. |
-| **Famille de refresh tokens + rÈvocation complËte sur rÈutilisation** | DÈtection de vol de token : si un ancien token est rÈutilisÈ, toute la famille est rÈvoquÈe. |
-| **Rotation atomique en transaction** | `updateMany(revokedAt=null)` + count check = pas de race condition. |
-| **bcryptjs co˚t 12** | Co˚t ÈlevÈ = lent, rÈsistant GPU. Pas de dÈpendance native. |
-| **Hash factice bcrypt co˚t 12 pour anti-ÈnumÈration login** | MÍme temps de rÈponse user inconnu / mauvais pwd / compte inactif. |
-| **RÈponse 200 identique sur forgot-password** | Anti-ÈnumÈration : impossible de savoir si un email existe. |
-| **Consommation atomique tokens (updateMany conditionnel)** | `count !== 1` ? 400 gÈnÈrique. Pas de race condition, usage unique garanti. |
-| **RÙle revÈrifiÈ en base ‡ chaque requÍte (`authenticate`)** | Token valide mais user dÈsactivÈ ? 401 immÈdiat. Pas d ÈlÈvation via token modifiÈ. |
-| **USER voit ses tickets en 404 (pas 403)** | Pas de fuite d existence de tickets d autres utilisateurs. |
-| **Rate limiting par IP sur endpoints sensibles** | 10 req/15min login/forgot/reset/invite, 30 req/15min refresh. Configurable via `RATE_LIMIT_ENABLED`. |
-| **Helmet + `x-powered-by` dÈsactivÈ + body limit 10kb** | Headers sÈcurisÈs, pas de fuite version, DoS basique limitÈ. |
-| **Trust proxy conditionnel (`NODE_ENV === production`)** | En dev : IP directe. En prod derriËre reverse proxy : header `X-Forwarded-For` fiable. |
-| **Zod `.strict()` sur tous les inputs** | Rejet champs inattendus (ex: `role` dans login). |
-| **Select explicite sans `passwordHash`** | Fuite impossible dans rÈponses. |
-| **Pas de token/mot de passe/email dans les logs** | Seuls messages d erreur gÈnÈriques loggÈs. |
-| **Gestion erreurs Prisma : P2025?404, P2002?409 gÈnÈriques** | Pas de fuite "email dÈj‡ utilisÈ" ou "ticket non trouvÈ" prÈcis. |
-| **SEED_SUPER_ADMIN_PASSWORD retirÈ aprËs seed** | Secret temporaire seulement. |
+| Code | Situation | Exemple `error` |
+|------|-----------|-----------------|
+| 400 | Validation Zod √©chou√©e | `"Validation failed"` |
+| 400 | Param√®tres invalides (pagination, etc.) | `"Validation failed"` |
+| 401 | Non authentifi√© / token invalide / utilisateur DISABLED | `"Unauthorized"` |
+| 401 | Identifiants invalides | `"Invalid credentials"` |
+| 403 | R√¥le insuffisant | `"Forbidden"` |
+| 404 | Ressource non trouv√©e (ou acc√®s refus√© USER) | `"Not found"` |
+| 409 | Conflit unicit√© (email, etc.) | `"Conflict"` |
+| 413 | Body > 10kb | `"Payload too large"` |
+| 429 | Rate limit d√©pass√© | `"Too many login attempts"` / `"Too many requests"` |
+| 500 | Erreur interne | `"Internal server error"` |
 
-## Limites connues
+Les erreurs de validation Zod incluent aussi `details: ZodIssue[]`.
 
-- Pas de vÈrification d email avant activation (invitation = activation)
-- Pas de MFA / 2FA
-- Pas de gestion de sessions multiples par utilisateur (famille unique par login)
-- Rate limiting en mÈmoire (pas de store Redis) : ne persiste pas Across redÈmarrages, pas partagÈ entre instances
-- Pas de logs structurÈs / audit trail
-- Resend sans domaine vÈrifiÈ : envoi possible uniquement vers l email du compte Resend (limitation Resend, pas du code)
-- Pas de tests automatisÈs (unitaires/intÈgration)
-- Pas de documentation OpenAPI/Swagger
+## Documentation OpenAPI / Swagger UI
 
-## Fichiers ‡ supprimer avant dÈploiement
+- **Sp√©cification** : √©crite √† la main dans `src/openapi.ts` (pas de g√©n√©ration automatique).
+- **Endpoints** :
+  - `GET /openapi.json` ‚Äî Sp√©cification OpenAPI 3.0.3 brute
+  - `GET /docs` ‚Äî Interface Swagger UI interactive
+- **Activation** : variable `ENABLE_DOCS=true` (d√©faut `false`).
+  - En d√©veloppement : mettre `ENABLE_DOCS=true` dans `.env` pour tester.
+  - En production : laisser `false` sauf besoin explicite.
+- **Helmet CSP** : assouplie automatiquement sur `/docs` quand `ENABLE_DOCS=true` (scripts/styles inline autoris√©s pour Swagger UI), inchang√©e ailleurs.
 
-| Fichier | Description |
-|---------|-------------|
-| `tmp-create-user.ts` | Script temporaire pour crÈer un USER de test |
-| `tmp-expire-invitation.ts` | Script temporaire pour crÈer un token expirÈ |
-| Compte `testuser@example.com` | Compte de test crÈÈ via `tmp-create-user.ts` |
+## Tests
 
-## Seed Super Admin
+### Lancer les tests (base de test isol√©e)
 
-Le seed (`npm run seed`) est **idempotent** :
-- Ne crÈe rien si un SUPER_ADMIN existe dÈj‡
-- Utilise `SEED_SUPER_ADMIN_EMAIL` et `SEED_SUPER_ADMIN_PASSWORD` depuis l environnement
-- Valide le mot de passe (min 12 caractËres)
-- Ne logge **jamais** le mot de passe
-- Affiche un rappel pour retirer `SEED_SUPER_ADMIN_PASSWORD` du `.env`
+```bash
+# 1. Cr√©er .env.test (copier .env.example, modifier)
+#    DATABASE_URL=postgresql://user:pass@localhost:5434/tickets_test
+#    RATE_LIMIT_ENABLED=false
+#    NODE_ENV=test
+#    JWT_SECRET=test-secret-min-32-chars-abcdefghijklmnop
 
-## Architecture
+# 2. Lancer base test (port 5434)
+docker run -d --name pg_test -e POSTGRES_USER=user -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=tickets_test -p 5434:5432 postgres:16
 
+# 3. Migrer base test
+DATABASE_URL=postgresql://user:pass@localhost:5434/tickets_test npx prisma migrate deploy
+
+# 4. Lancer tests
+npm test
 ```
-src/
-+-- app.ts              # Express app, middleware globaux, rate limiting
-+-- index.ts            # Bootstrap, validation env au dÈmarrage
-+-- env.ts              # Validation Zod des variables d environnement
-+-- prisma.ts           # Client Prisma singleton
-+-- schema.ts           # SchÈmas Zod (strict) pour tous les inputs
-+-- email.ts            # Envoi emails via Resend (dev: console)
-+-- auth/
-¶   +-- tokens.ts       # JWT access + refresh token utils
-¶   +-- passwords.ts    # bcrypt hash/verify + dummy hash
-¶   +-- middleware.ts   # authenticate + requireRole
-+-- routes/
-    +-- auth.ts         # /auth/* endpoints
-    +-- users.ts        # /users/* endpoints (SUPER_ADMIN/ADMIN)
-    +-- tickets.ts      # /tickets/* endpoints (RBAC)
-```
+
+### Garde-fous
+
+- `tests/setup.ts` charge `.env.test` **avant** tout import applicatif.
+- V√©rifie que `DATABASE_URL` finit par `_test` ‚Üí refuse de tourner sinon.
+- V√©rifie `NODE_ENV=test`, `JWT_SECRET >= 32 chars`, `RATE_LIMIT_ENABLED` d√©fini.
+- `sendEmail` mock√© (aucune email r√©el envoy√©).
+- `truncateTestDatabase()` vide toutes les tables entre chaque `beforeEach`.
+- Les tests tournent en **single thread** (`vitest.config.ts`) pour √©viter les conditions de course sur la base.
+
+### Couverture actuelle (418 tests)
+
+- Auth : login, refresh (rotation + d√©tection vol), logout, forgot/reset password, accept-invitation, me
+- Users : cr√©er (SUPER_ADMIN), lister, d√©sactiver, r√©activer, changer r√¥le
+- Tickets : CRUD + visibilit√© RBAC + pagination/tri/filtre
+- Audit logs : cr√©ation pour 6 actions, pas de log sur √©chec, pas de donn√©es sensibles, atomicit√©, endpoint GET
+- Injection/validation : null bytes, SQL/XSS/NoSQL/LFI/STTI payloads accept√©s comme texte, body > 10kb = 413, Zod `.strict()` rejette champs en trop
+- Rate limiting : 10 req/15min sur endpoints sensibles, 30 req/15min sur refresh
+- OpenAPI coverage : test bidirectionnel (toutes routes de l'app dans la spec, et vice-versa)
+
+## CI / GitHub Actions
+
+Workflow `.github/workflows/ci.yml` d√©clench√© sur **push** et **pull_request** vers `main` :
+
+1. `ubuntu-latest`, Node 22, cache npm
+2. Service `postgres:16` avec healthcheck
+3. `npm ci` ‚Üí `npx prisma generate` ‚Üí `npx prisma migrate deploy` (sur `tickets_test`)
+4. `npx tsc --noEmit`
+5. `npm test`
+
+**Variables d'environnement CI** : toutes factices (pas de vrais secrets). `DATABASE_URL` finit par `_test` pour satisfaire le garde-fou.
+
+### V√©rifier la CI
+
+1. Poussez sur GitHub (`git push origin main` ou ouvrez une PR).
+2. Allez dans l'onglet **Actions** du d√©p√¥t.
+3. Le workflow "CI" doit appara√Ætre, cliquer sur le run.
+4. V√©rifier que les 5 √©tapes (Install, Generate, Migrate, TypeScript, Test) passent en vert.
+5. Si √©chec : regarder les logs de l'√©tape qui a √©chou√©.
 
 ## Commandes utiles
 
@@ -218,9 +234,75 @@ npx prisma migrate dev --name <nom>
 # Studio Prisma
 npx prisma studio
 
-# Seed
+# Seed Super Admin (idempotent)
 npm run seed
 
 # Dev avec hot reload
 npm run dev
 ```
+
+## Architecture
+
+```
+src/
++-- app.ts              # Express app, middleware globaux, rate limiting, Swagger
++-- index.ts            # Bootstrap, validation env au d√©marrage
++-- env.ts              # Validation Zod des variables d'environnement
++-- prisma.ts           # Client Prisma singleton
++-- schema.ts           # Sch√©mas Zod (strict) pour tous les inputs
++-- email.ts            # Envoi emails via Resend (dev: console)
++-- openapi.ts          # Sp√©cification OpenAPI 3.0.3 + setup Swagger UI
++-- auth/
+|   +-- tokens.ts       # JWT access + refresh token utils
+|   +-- passwords.ts    # bcrypt hash/verify + dummy hash
+|   +-- middleware.ts   # authenticate + requireRole
+|   +-- service.ts      # Logique auth (login, refresh, reset, invite)
+|   +-- controller.ts   # Handlers /auth/*
+|   +-- routes.ts       # Router /auth
++-- users/
+|   +-- service.ts      # Logique users (create, disable, enable, changeRole)
+|   +-- controller.ts   # Handlers /users/*
+|   +-- routes.ts       # Router /users
++-- tickets/
+|   +-- service.ts      # Logique tickets (CRUD + pagination/filtre/tri + RBAC)
+|   +-- controller.ts   # Handlers /tickets/*
+|   +-- routes.ts       # Router /tickets
++-- audit/
+|   +-- service.ts      # Logique audit (create, get pagin√©/filtr√©/tri√©)
+|   +-- controller.ts   # Handler GET /audit-logs
+|   +-- routes.ts       # Router /audit-logs
+```
+
+## Choix de s√©curit√© et justifications
+
+| Choix | Justification |
+|-------|---------------|
+| **JWT HS256 + secret 32+ chars** | Choix de conception (pas exigence du sujet). Sym√©trique, simple, pas de gestion de paires de cl√©s. Secret long = r√©sistance brute-force. |
+| **Algorithme fix√© √† `["HS256"]`** | Pr√©vention attaque "alg: none" et confusion RS256/HS256. |
+| **Issuer + Audience v√©rifi√©s** | Token non r√©utilisable sur autre service. |
+| **Access token 15 min, claims `sub` + `role`** | Court TTL = fen√™tre d'exploitation r√©duite. Pas de donn√©es sensibles dans le token. |
+| **Refresh token : `randomBytes(32)` hex, SHA-256 stock√©, 7 jours** | Entropie forte, pas de secret en base. Rotation √† chaque refresh. |
+| **Famille de refresh tokens + r√©vocation compl√®te sur r√©utilisation** | D√©tection de vol de token : si un ancien token est r√©utilis√©, toute la famille est r√©voqu√©e. |
+| **Rotation atomique en transaction** | `updateMany(revokedAt=null)` + count check = pas de race condition. |
+| **bcryptjs co√ªt 12** | Co√ªt √©lev√© = lent, r√©sistant GPU. Pas de d√©pendance native. |
+| **Hash factice bcrypt co√ªt 12 pour anti-√©num√©ration login** | M√™me temps de r√©ponse user inconnu / mauvais pwd / compte inactif. |
+| **R√©ponse 200 identique sur forgot-password** | Anti-√©num√©ration : impossible de savoir si un email existe. |
+| **Consommation atomique tokens (updateMany conditionnel)** | `count !== 1` ? 400 g√©n√©rique. Pas de race condition, usage unique garanti. |
+| **R√¥le rev√©rifi√© en base √† chaque requ√™te (`authenticate`)** | Token valide mais user d√©sactiv√© ? 401 imm√©diat. Pas d'√©l√©vation via token modifi√©. |
+| **USER voit ses tickets en 404 (pas 403)** | Pas de fuite d'existence de tickets d'autres utilisateurs. |
+| **Rate limiting par IP sur endpoints sensibles** | 10 req/15min login/forgot/reset/invite, 30 req/15min refresh. Configurable via `RATE_LIMIT_ENABLED`. |
+| **Helmet + `x-powered-by` d√©sactiv√© + body limit 10kb** | Headers s√©curis√©s, pas de fuite version, DoS basique limit√©. |
+| **Trust proxy conditionnel (`NODE_ENV === production`)** | En dev : IP directe. En prod derri√®re reverse proxy : header `X-Forwarded-For` fiable. |
+| **Zod `.strict()` sur tous les inputs** | Rejet champs inattendus (ex: `role` dans login). |
+| **Select explicite sans `passwordHash`** | Fuite impossible dans r√©ponses. |
+| **Pas de token/mot de passe/email dans les logs** | Seuls messages d'erreur g√©n√©riques loggu√©s. |
+| **Gestion erreurs Prisma : P2025‚Üí404, P2002‚Üí409 g√©n√©riques** | Pas de fuite "email d√©j√† utilis√©" ou "ticket non trouv√©" pr√©cis. |
+| **SEED_SUPER_ADMIN_PASSWORD retir√© apr√®s seed** | Secret temporaire seulement. |
+
+## Limites connues
+
+- Pas de v√©rification d'email avant activation (invitation = activation)
+- Pas de MFA / 2FA
+- Pas de gestion de sessions multiples par utilisateur (famille unique par login)
+- Rate limiting en m√©moire (pas de store Redis) : ne persiste pas Across red√©marrages, pas partag√© entre instances
+- Resend sans domaine v√©rifi√© : envoi possible uniquement vers l'email du compte Resend (limitation Resend, pas du code)
