@@ -70,8 +70,8 @@ if (env.RATE_LIMIT_ENABLED) {
   // /auth/login : 10 req / 15 min
   app.use("/auth/login", createLimiter(15 * 60 * 1000, 10, "Too many login attempts"));
 
-  // /auth/forgot-password : 10 req / 15 min
-  app.use("/auth/forgot-password", createLimiter(15 * 60 * 1000, 10, "Too many requests"));
+  // /auth/forgot-password : 5 req / 1h
+  app.use("/auth/forgot-password", createLimiter(60 * 60 * 1000, 5, "Too many requests"));
 
   // /auth/accept-invitation : 10 req / 15 min
   app.use("/auth/accept-invitation", createLimiter(15 * 60 * 1000, 10, "Too many requests"));
