@@ -32,6 +32,12 @@ enum UserTokenType {
   PASSWORD_RESET
 }
 
+enum AiMessageStatus {
+  ANSWERED
+  REFUSED
+  FAILED
+}
+
 model User {
   id            String       @id @default(uuid())
   email         String       @unique
@@ -45,6 +51,7 @@ model User {
   assignedTickets  Ticket[]     @relation("TicketAssignee")
   tokens           UserToken[]
   refreshTokens    RefreshToken[]
+  aiMessages       AiMessage[]
 }
 
 model UserToken {
@@ -101,4 +108,17 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([targetType, targetId])
+}
+
+model AiMessage {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question  String        @db.Text
+  answer    String?       @db.Text
+  status    AiMessageStatus
+  model     String
+  createdAt DateTime      @default(now())
+
+  @@index([userId, createdAt])
 }

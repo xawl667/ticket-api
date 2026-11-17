@@ -155,6 +155,43 @@ const openApiSpec = {
         },
         required: ["id", "action", "targetType", "targetId", "createdAt"],
       },
+      AiMessage: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          question: { type: "string" },
+          answer: { type: ["string", "null"] },
+          status: { type: "string", enum: ["ANSWERED", "REFUSED", "FAILED"] },
+          model: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+        required: ["id", "question", "status", "model", "createdAt"],
+      },
+      AskRequest: {
+        type: "object",
+        required: ["question"],
+        properties: {
+          question: { type: "string", minLength: 1, maxLength: 2000, example: "Comment configurer un reverse proxy nginx ?" },
+        },
+        additionalProperties: false,
+      },
+      AskResponse: {
+        type: "object",
+        required: ["id", "answer", "createdAt"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+          answer: { type: "string" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      AiHistoryResponse: {
+        type: "object",
+        required: ["data", "meta"],
+        properties: {
+          data: { type: "array", items: { $ref: "#/components/schemas/AiMessage" } },
+          meta: { $ref: "#/components/schemas/PaginationMeta" },
+        },
+      },
       LoginRequest: {
         type: "object",
         required: ["email", "password"],
@@ -604,6 +641,47 @@ const openApiSpec = {
           400: { description: "Paramètres invalides", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorWithDetails" } } } },
           401: { description: "Non authentifié", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Unauthorized" } } } },
           403: { description: "Réservé SUPER_ADMIN", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Forbidden" } } } },
+        },
+      },
+    },
+
+    // ==================== AI ====================
+    "/ai/ask": {
+      post: {
+        tags: ["AI"],
+        summary: "Poser une question à l'assistant IA (portée informatique uniquement)",
+        description: "Accessible à tous les rôles authentifiés. Filtre strict : seules les questions informatiques reçoivent une réponse. Rate limit par utilisateur (défaut 20/heure). Sans clé DeepSeek configurée → 503. Réponses : 200 (répondu), 422 (hors périmètre), 503 (service indisponible).",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/AskRequest" } } },
+        },
+        responses: {
+          200: { description: "Question répondue", content: { "application/json": { schema: { $ref: "#/components/schemas/AskResponse" } } } },
+          400: { description: "Validation failed (question vide, trop longue, champs en trop)", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorWithDetails" } } } },
+          401: { description: "Non authentifié", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Unauthorized" } } } },
+          413: { description: "Payload too large", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Payload too large" } } } },
+          422: { description: "Question hors périmètre informatique", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Question outside the IT scope" } } } },
+          429: { description: "Quota dépassé", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Too many requests" } } } },
+          503: { description: "Service IA indisponible (clé absente ou erreur fournisseur)", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "AI service unavailable" } } } },
+        },
+      },
+    },
+    "/ai/history": {
+      get: {
+        tags: ["AI"],
+        summary: "Historique des questions/réponses IA",
+        description: "Un utilisateur ne voit que ses propres lignes. SUPER_ADMIN voit tout (paramètre optionnel userId). Pagination { data, meta } comme GET /tickets (page, limit max 100), tri du plus récent au plus ancien. Aucun champ sensible dans la réponse.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "userId", in: "query", schema: { type: "string", format: "uuid" }, description: "Filtrer par utilisateur (SUPER_ADMIN seulement)" },
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "Numéro de page" },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 20 }, description: "Éléments par page (max 100)" },
+        ],
+        responses: {
+          200: { description: "Historique paginé", content: { "application/json": { schema: { $ref: "#/components/schemas/AiHistoryResponse" } } } },
+          400: { description: "Paramètres invalides", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorWithDetails" } } } },
+          401: { description: "Non authentifié", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { error: "Unauthorized" } } } },
         },
       },
     },

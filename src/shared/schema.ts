@@ -51,3 +51,14 @@ export const createUserSchema = z.object({
 export const updateUserStatusSchema = z.object({
   status: z.enum(["ACTIVE", "DISABLED"]),
 }).strict();
+
+// AI schemas
+export const askSchema = z.object({
+  question: z.string().min(1).max(2000).refine(noNullBytes, 'Null bytes not allowed').trim(),
+}).strict();
+
+export const historyQuerySchema = z.object({
+  userId: z.string().uuid().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().default(20),
+}).strict();

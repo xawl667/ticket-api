@@ -26,12 +26,26 @@ const envSchema = z.object({
     emptyToUndefined,
     z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   ),
+  TRUST_PROXY: z.preprocess(
+    emptyToUndefined,
+    z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
+  ),
   ENABLE_DOCS: z.preprocess(
     emptyToUndefined,
     z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   ),
   SEED_SUPER_ADMIN_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
   SEED_SUPER_ADMIN_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(12).optional()),
+
+  // AI / DeepSeek
+  DEEPSEEK_API_KEY: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).optional(),
+  ),
+  AI_MODEL: z.string().default("deepseek-chat"),
+  AI_BASE_URL: z.string().url().default("https://api.deepseek.com"),
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
+  AI_RATE_LIMIT_PER_HOUR: z.coerce.number().int().positive().default(20),
 });
 
 const parsed = envSchema.safeParse(process.env);

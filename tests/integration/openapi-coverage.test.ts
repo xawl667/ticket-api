@@ -4,6 +4,7 @@ import { authRouter } from '../../src/modules/auth/routes.js';
 import { usersRouter } from '../../src/modules/users/routes.js';
 import { ticketsRouter } from '../../src/modules/tickets/routes.js';
 import { auditRouter } from '../../src/modules/audit/routes.js';
+import { aiRouter } from '../../src/modules/ai/routes.js';
 
 function extractRoutesFromRouter(router: any, basePath: string): Array<{ method: string; path: string }> {
   const routes: Array<{ method: string; path: string }> = [];
@@ -34,6 +35,7 @@ function extractRoutesFromApp(): Array<{ method: string; path: string }> {
   routes.push(...extractRoutesFromRouter(usersRouter, '/users'));
   routes.push(...extractRoutesFromRouter(ticketsRouter, '/tickets'));
   routes.push(...extractRoutesFromRouter(auditRouter, '/audit-logs'));
+  routes.push(...extractRoutesFromRouter(aiRouter, '/ai'));
 
   // Dédupliquer
   const unique = routes.filter(
@@ -142,6 +144,9 @@ describe('OpenAPI Coverage', () => {
       { method: 'PATCH', path: '/tickets/{id}/status' },
       // Audit
       { method: 'GET', path: '/audit-logs' },
+      // AI
+      { method: 'POST', path: '/ai/ask' },
+      { method: 'GET', path: '/ai/history' },
     ];
 
     for (const expected of expectedRoutes) {

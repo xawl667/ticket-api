@@ -1,0 +1,90 @@
+﻿**********************
+Début de la transcription Windows PowerShell
+Heure de début : 20261117121040
+Nom d'utilisateur : DESKTOP-S4FTCCB\Caleb
+Utilisateur runAs :  DESKTOP-S4FTCCB\Caleb
+Nom de la configuration : 
+Ordinateur : DESKTOP-S4FTCCB (Microsoft Windows NT 10.0.26300.0)
+Application hôte : C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File .\audit-tests.ps1 -Phase 2
+ID de processus : 28344
+PSVersion: 5.1.26100.9818
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9818
+BuildVersion: 10.0.26100.9818
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+
+=== Connexion du Super Admin ===
+Connecte : role=SUPER_ADMIN
+
+=== T20 : rate limit du login ===
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Invalid credentials"} »
+[T20] Brute-force login limite -> INFO
+    attendu : 429 apres 10 essais
+    observe : statuts : 401x12 : aucun 429, verifie RATE_LIMIT_ENABLED=true et redemarre le serveur
+[T21] IP usurpee via X-Forwarded-For -> SKIPPED
+    attendu : T20 reussi
+    observe : pas de 429 observe a T20
+
+=== T22 : rate limit de forgot-password ===
+[T22] forgot-password limite -> INFO
+    attendu : 429 apres 10 requetes
+    observe : statuts : 200x12
+
+=== T23 : quota de l'assistant IA (requetes invalides, aucun appel DeepSeek) ===
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+PS>Erreur de terminaison (Invoke-WebRequest) : « {"error":"Validation failed","details":[{"origin":"string","code":"too_small","minimum":1,"inclusive":true,"path":["question"],"message":"Too small: expected string to have >=1 characters"}]} »
+[T23] Quota IA par utilisateur -> INFO
+    attendu : 429 apres 20 requetes
+    observe : statuts : 400x22 (si aucun 429 : limiteur place apres la validation, ou quota different)
+
+Redemarre le serveur pour remettre les compteurs a zero (ils sont en memoire).
+
+=== RESUME ===
+
+Id  Test                           Verdict
+--  ----                           -------
+T20 Brute-force login limite       INFO   
+T21 IP usurpee via X-Forwarded-For SKIPPED
+T22 forgot-password limite         INFO   
+T23 Quota IA par utilisateur       INFO
+VULNERABLE : 0 | INFO : 3 | NOT EXPLOITABLE : 0
+Preuves enregistrees dans : docs\audit\run-phase2-20261117-121040
+**********************
+Fin de la transcription Windows PowerShell
+Heure de fin : 20261117121058
+**********************

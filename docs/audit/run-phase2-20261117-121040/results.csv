@@ -1,0 +1,5 @@
+﻿"Id","Test","Verdict","Expected","Observed"
+"T20","Brute-force login limite","INFO","429 apres 10 essais","statuts : 401x12 : aucun 429, verifie RATE_LIMIT_ENABLED=true et redemarre le serveur"
+"T21","IP usurpee via X-Forwarded-For","SKIPPED","T20 reussi","pas de 429 observe a T20"
+"T22","forgot-password limite","INFO","429 apres 10 requetes","statuts : 200x12"
+"T23","Quota IA par utilisateur","INFO","429 apres 20 requetes","statuts : 400x22 (si aucun 429 : limiteur place apres la validation, ou quota different)"
