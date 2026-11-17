@@ -34,7 +34,12 @@ app.use(helmet(helmetConfig));
 // Trust proxy pour rate limiting derrière reverse proxy (nginx, etc.)
 // En dev: trust proxy = false (désactivé par défaut), rate limit basé sur IP directe
 // En prod derrière proxy: définir TRUST_PROXY=true dans .env
-app.set("trust proxy", env.NODE_ENV === "production");
+app.set("trust proxy", env.TRUST_PROXY);
+
+// En production, RATE_LIMIT_ENABLED=false est interdit
+if (env.NODE_ENV === "production" && !env.RATE_LIMIT_ENABLED) {
+  throw new Error("RATE_LIMIT_ENABLED=false est interdit en production");
+}
 
 app.use(express.json({ limit: "10kb" }));
 
