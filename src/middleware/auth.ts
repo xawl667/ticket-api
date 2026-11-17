@@ -23,6 +23,16 @@ export async function authenticate(
     return;
   }
 
+  // Vérifier que la session (familyId = sid) n'est pas révoquée
+  const session = await prisma.refreshToken.findFirst({
+    where: { familyId: payload.sid, revokedAt: null },
+    select: { id: true },
+  });
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
     select: { id: true, role: true, status: true },
@@ -33,7 +43,7 @@ export async function authenticate(
     return;
   }
 
-  req.user = { id: user.id, sub: user.id, role: user.role };
+  req.user = { id: user.id, sub: user.id, role: user.role, sid: payload.sid };
   next();
 }
 

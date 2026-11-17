@@ -63,7 +63,7 @@ export async function login(email: string, password: string): Promise<LoginResul
     },
   });
 
-  const accessToken = signAccessToken({ sub: user.id, role: user.role });
+  const accessToken = signAccessToken({ sub: user.id, role: user.role, sid: familyId });
   return { accessToken, refreshToken };
 }
 
@@ -133,7 +133,7 @@ export async function refresh(refreshToken: string): Promise<RefreshResult> {
       data: { replacedById: newToken.id },
     });
 
-    const accessToken = signAccessToken({ sub: stored.user.id, role: stored.user.role });
+    const accessToken = signAccessToken({ sub: stored.user.id, role: stored.user.role, sid: stored.familyId });
 
     return { ok: true, accessToken, refreshToken: newRefreshToken };
   });

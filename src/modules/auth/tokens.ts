@@ -8,6 +8,7 @@ const REFRESH_TTL_DAYS = 7;
 export interface AccessTokenPayload {
   sub: string;
   role: string;
+  sid: string;
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {

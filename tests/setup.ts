@@ -68,8 +68,8 @@ const TEST_JWT_SECRET = process.env.JWT_SECRET!;
 const TEST_JWT_ISSUER = process.env.JWT_ISSUER!;
 const TEST_JWT_AUDIENCE = process.env.JWT_AUDIENCE!;
 
-export function signTestAccessToken(payload: { sub: string; role: string }): string {
-  return jwt.sign(payload, TEST_JWT_SECRET, {
+export function signTestAccessToken(payload: { sub: string; role: string; sid?: string }): string {
+  return jwt.sign({ ...payload, sid: payload.sid ?? randomUUID() }, TEST_JWT_SECRET, {
     algorithm: 'HS256',
     expiresIn: '15m',
     issuer: TEST_JWT_ISSUER,
@@ -163,7 +163,22 @@ export async function createTestUser(
     },
   });
 
-  const accessToken = signTestAccessToken({ sub: user.id, role: user.role });
+  // Create a refresh token family for session binding
+  const familyId = randomUUID();
+  const refreshToken = generateRefreshToken();
+  const refreshTokenHash = hashToken(refreshToken);
+  const expiresAt = getRefreshTokenExpiry();
+
+  await p.refreshToken.create({
+    data: {
+      tokenHash: refreshTokenHash,
+      userId: user.id,
+      familyId,
+      expiresAt,
+    },
+  });
+
+  const accessToken = signTestAccessToken({ sub: user.id, role: user.role, sid: familyId });
 
   return {
     id: user.id,
@@ -172,6 +187,7 @@ export async function createTestUser(
     status: user.status,
     passwordHash,
     accessToken,
+    refreshToken,
   };
 }
 
@@ -209,7 +225,7 @@ export async function createTestUserWithRefreshToken(
     },
   });
 
-  const accessToken = signTestAccessToken({ sub: user.id, role: user.role });
+  const accessToken = signTestAccessToken({ sub: user.id, role: user.role, sid: familyId });
 
   return {
     id: user.id,
