@@ -88,8 +88,8 @@ app.use("/users", usersRouter);
 app.use("/tickets", ticketsRouter);
 app.use("/audit-logs", auditRouter);
 
-// Swagger / OpenAPI (désactivé en prod sauf si ENABLE_DOCS=true)
-setupSwagger(app, env.ENABLE_DOCS);
+// Swagger / OpenAPI (activé seulement si ENABLE_DOCS=true ET pas en production)
+setupSwagger(app, env.ENABLE_DOCS && env.NODE_ENV !== "production");
 
 // Route inconnue
 app.use((_req, res) => {
